@@ -1,0 +1,60 @@
+// ------- Theme  - For a given teacher option to create a program in Pascal. ------------
+// Task: In the matrix A (10,10) to find the maximum elements in the rows and the minimum elements in the columns. 
+// Print the original matrix, the values found and the 3 numbers of the rows and columns where they are located.
+
+
+program maxMin;
+{i, j - the row and column indices of the matrix, respectively;
+ iMin - minimal numbers in matrix columns;
+ jMax - maximum numbers in rows of the matrix;
+}
+const
+     n = 10; {set the number of rows}
+     m = 10;{set the number of columns}
+
+var
+     A: array[1..n, 1..m] of integer;
+     i, j, iMin, jMax: integer;
+
+begin
+     writeln('     Matrix of numbers from ', n, ' rows and ', m, ' columns:');
+     writeln;
+     randomize;
+     for i := 1 to n do
+     begin
+          for j := 1 to m do
+          begin
+               A[i, j] := random(51) - 25;{fill the matrix with arbitrary numbers}
+               write(A[i, j]:7); {printing a matrix of arbitrary numbers}           
+          end;
+          writeln;
+     end;
+     writeln;
+     
+     writeln('     Maximum values in matrix rows:');
+     writeln;
+     for i := 1 to n do {iterating over rows (brute force)}
+     begin
+          jMax := 1; {assigned the first numbers of all lines - maximum}
+          for j := 2 to m do {iterate through the numbers inside each line (brute force)}
+               if A[i, j] > A[i, jMax] then {compare each number of a line (sorting line by line)
+                                                         with the first number (supposedly maximum) of each line}
+                    jMax := j; {assign the second index to the maximum number jMax and
+                            we get the value of the maximum number = A [i, jMax]}
+          writeln('  В ', i, ' line max element = ', A[i, jMax], ' his index = ', jMax, '([', i, ', ', jMax, '])');
+     end;
+     writeln;
+     
+     {similar search for minimum values of numbers and their indices in columns:}
+     writeln('     Minimum values in matrix columns:');
+     writeln;
+     for j := 1 to m do
+     begin
+          iMin := 1;
+          for i := 2 to n do
+               if A[i, j] < A[iMin, j] then
+                    iMin := i;
+          writeln('  В ', j, ' column minimum item = ', A[iMin, j], ' his index = ', iMin, '([', iMin, ', ', j, '])');
+     end;
+end.
+

@@ -1,0 +1,328 @@
+//------ Theme of the task - Development, debugging and execution of the program using subroutines with different types of parameters,
+//types of record, set, files --------------------------
+
+// Theme of the task - Development, debugging and execution of the program using subroutines with different types of parameters,
+// types of record, set, files.
+
+
+
+program CalcTarif;
+
+uses crt;   //To use Readkey and Clrscr
+
+type
+     tarif = record  // list item is described by type "record"
+          tar: string[20];  //Tariff name
+          inter_traf: integer; //Internet traffic
+          min: integer; //number of minutes
+          plata: integer;  //subscription fee        
+     end;
+     adr = ^zveno;     //pointer to the tariff list item
+     zveno = record
+          infa: tarif;
+          next: adr; //link to the next list item
+     end;
+
+  //===== standart ================ 
+procedure standart;
+begin
+     window(0, 0, 24, 79);
+     textbackground(White); 
+     textcolor(blue); 
+     clrscr;
+     gotoxy(1, 3);
+end;
+
+procedure menu;
+forward;
+
+procedure enter;
+begin
+     writeln;
+     writeln('  To return to the menu, press Enter. '); 
+     readln;
+     readkey;
+end;
+
+//===  Insert a new fare to the list  ========= 
+procedure add(var spis: adr; tar: string[10]; inter_traf, min, plata: integer);
+var
+     tmp: adr;    // additional pointer
+begin
+     standart;
+     new(tmp);
+     write('  Enter the name of the fare to be added:   '); read(tar);
+     tmp^.infa.tar := tar;
+     write('  The number of Internet traffic (2/4/8/16/32 Гб):   '); read(inter_traf);
+     tmp^.infa.inter_traf := inter_traf;
+     write('  The number of free minutes per month(50/100/150):  '); read(min);
+     tmp^.infa.min := min;
+      write('  Subscription fee (5/10/20/30 руб):   '); read(plata);
+      tmp^.infa.plata := plata;     
+      if spis = nil then  // if the list is empty - the first element is zero (1st option)
+      begin
+          new(spis); //create its first element
+          tmp := spis; // We put a pointer to the 1st element (new element = head)
+     end
+     else   // if the list is not empty (2nd option)  
+     begin
+          tmp := spis; // put the pointer on the head
+          while tmp^.next <> nil do // until the pointer shows into the void
+               tmp := tmp^.next; //set the tmp pointer to the last item in the list
+         new(tmp^.next);  //create the next item
+         tmp := tmp^.next;   //transfer tmp to new item
+     end;
+     tmp^.infa.tar := tar; //enter the value - the name of the tariff
+     tmp^.infa.inter_traf := inter_traf; //– amount of internet traffic
+     tmp^.infa.min := min; // – number of minutes
+     tmp^.infa. plata :=  plata; // – subscription fee
+     tmp^.next := nil; //Zero pointer
+   enter;    
+end;
+
+//========= View list  ============ 
+procedure print(spis: adr);
+begin
+     standart;
+     if spis = nil then
+     begin
+          write('  The list of tariff plans is empty.'); readln; exit;
+     end;
+     while spis <> nil do //until the spis pointer points to void
+     begin  //display of the current list item
+          writeln('  Tariff parameters:');
+          writeln('  Tariff name:  ', spis^.infa.tar);
+          writeln('  Amount of Internet traffic:  ',  spis^.infa.inter_traf);
+          writeln('  Number of minutes per month:  ', spis^.infa.min);
+          writeln('  Subscription fee:  ', spis^.infa. plata);    
+          writeln;
+          spis := spis^.next; //Go to the next item
+     end;
+    enter;
+end;
+
+//==========  deleting list  ============== 
+procedure del_spisok(var spis: adr);
+var
+     tmp: adr;
+     c: char;
+begin
+     standart;
+     writeln('  Delete the entire list Y/N?'); readln(c);
+     if c in ['Y', 'y'] then 
+     begin
+          while spis <> nil do 
+          begin
+               tmp := spis; 
+               spis := spis^.next;  
+               dispose(tmp); 
+          end; 
+          writeln('  List deleted.');
+     end    
+     else  
+      writeln('  The list has not been deleted.');
+     enter;
+end;
+
+// =========  deleting item  ======= 
+procedure del_elem(var spis: adr; tmp: adr);
+var
+     tmp1: adr;
+begin
+     if (spis = nil) or (tmp = nil) then exit; //if the list is empty or the pointer does not indicate anywhere, then exit (1st option)
+     if tmp = spis then //if the element to be deleted is the top of the list (head) (2nd option)
+     begin
+          spis := tmp^.next; // transfer the top and
+          dispose(tmp);  //freeing memory from the element
+     end
+     else // several elements and you need to find the right one (3rd option)
+     begin
+          tmp1 := spis;  //put an extra pointer to the top of the list
+          while tmp1^.next <> tmp do //we reach the element facing the removed
+               tmp1 := tmp1^.next; //move the pointer
+          tmp1^.next := tmp^.next; //the element pointer is transferred to the next element to be deleted
+          dispose(tmp); //delete item
+     end;
+end;
+
+// ====== Item Search Function   =============== 
+function search_elem(spis: adr; tar: string[20]): adr;
+begin
+     standart;
+     if spis <> nil then //if the list is not empty
+          while (spis <> nil) and (tar <> spis^.infa.tar)  do // until spis (Pointer) points to "void" or until the item is found
+               spis := spis^.next; // move the pointer to the next item
+     search_elem := spis; //the function returns a pointer to the found element or nil if there is none
+   enter;
+end;
+     
+//=== remove item from list by value =========
+procedure delete_el_znach(var spis: adr; tar: string[20]); 
+var
+     tmp: adr;// additional pointer
+begin
+     standart;
+     if spis = nil then //if the list is empty, then display the message and exit (1st option)
+     begin
+          write('  The list of tariff plans is empty.'); readln ;exit; 
+          end;
+     write('  Enter the name of the item to be deleted:  '); readln(tar); writeln;
+    tmp := search_elem(spis, tar); //point to the item to be deleted (call to the item search function) (2nd option)
+     if tmp = nil then //if the item is not found, then the message and exit (3rd option)
+     begin
+          write('  Required item  ', tar, '  not listed'); readln; exit;
+     end
+    else
+    begin
+        del_elem(spis, tmp); // deleting an element (calling an element deletion procedure)
+        writeln('  Element  ', tar, '  deleted');
+     end;
+    enter;
+end;
+
+// ========= tariff selection ==================== 
+procedure podbor(spis: adr; tar: string[20]; inter_traf, min, plata: integer); 
+begin
+    standart;
+    if spis = nil then write('  The list of tariff plans is absent.');
+    writeln('  Enter the characteristics of the tariff plan:  ');
+    writeln('  Amount of internet traffic (2/4/8/16/32 Гб):   ');  readln(inter_traf);
+    writeln('  Number of minutes per month (50/100/150):    '); readln(min);
+    while (spis <> nil) and  (spis^.infa.inter_traf <> inter_traf) and (spis^.infa.min <> min)  do
+          spis := spis^.next;
+     if spis <> nil then begin;
+          writeln;
+          writeln('  The tariff plan suits you:  ', spis^.infa.tar);
+          writeln('  Tariff parameters: '); 
+          writeln('  Tariff name:   ', spis^.infa.tar);
+          writeln('  Amount of Internet traffic:  ',  spis^.infa.inter_traf);
+          writeln('  The number of minutes per month:  ', spis^.infa.min);
+           writeln('  Subscription fee:  ', spis^.infa. plata);         
+     end
+     else writeln('  There is no suitable tariff plan.');
+    enter;
+end;
+
+//==== write list to file ==================== 
+procedure save(var spis: adr; f: file of tarif);
+var
+     tek_elem: adr; //current element pointer
+     n: word;
+     name: string[11];
+begin
+     standart;
+     n := 0; // - The number of recorded items
+     if spis = nil then //1st option
+     begin
+          writeln('  the list is empty'); writeln;
+          writeln(' To return to the menu, press Enter. '); 
+          readln;         
+          exit;
+     end
+     else //2й вар-т 
+     begin
+          writeln('  Saving in progress ... ');
+          write(' Enter the file name to save the data (up to 11 characters): '); readln(name);
+          assign(f, name);    
+          rewrite(f);    //open file for writing
+         tek_elem := spis;
+          
+          while tek_elem <> nil do 
+          begin// - include the entire list
+               write(f, tek_elem^.infa);      // - write the current value
+               tek_elem := tek_elem^.next;   // - move the pointer through the list
+               n := n + 1; // increase the number of recorded items
+          end;
+          close(f); //close the file
+          writeln;
+          writeln('  Saving is complete. ');
+          writeln('  File name: ', name); //display a message about saving
+          writeln('  The number of recorded items is:  ', n);
+     end;
+    enter;
+end;
+
+//==== Load the list from file ======================= 
+procedure load(var spis: adr; var f: file of tarif);
+var
+     vsp: adr;
+     name: string[11];
+begin
+     standart;
+     clrscr;
+     write('  Enter the file name with the data:  '); readln(name);
+     assign(f, name);    //connected to file
+     if FileExists(name) then //exists ( FileExists() - file verification procedure
+     begin
+          reset(f);     //open the file
+          new(vsp); //create new list item
+          vsp^.next := nil; //Zero pointer
+          spis := vsp; 
+          while not Eof(f) do //read all the data to the end of the file
+          begin
+               spis := spis^.next;
+               read(f, spis^.infa); //reading
+               //write(spis^.infa); // display data
+               spis^.next := nil; 
+          end;
+     end
+     Else
+     begin
+          rewrite(f);   
+     end;
+     enter;
+end;
+
+// ======= MENU=============== 
+procedure menu;
+var
+     f: file of tarif;
+     spis: adr; 
+      tar: string[20];  //Tariff name
+      inter_traf: integer; //Internet traffic
+      min: integer; //number of minutes
+      plata: integer;  //subscription fee
+      key: char;
+begin
+      repeat//menu item selection
+       clrscr;
+     window(20, 8, 60, 25);  textbackground(brown); textcolor(lightgray);
+     clrscr;  gotoxy(10, 2);
+     Writeln('  MENU: ');    gotoxy(3, 3);
+     Writeln('1. Insert a new fare to the list.');    gotoxy(3, 4);
+     Writeln('2. View fares.');        gotoxy(3, 5);
+     Writeln('3. Delete the entire list.');   gotoxy(3, 6);
+     Writeln('4. Deleting a plan by name.');     gotoxy(3, 7);
+     Writeln('5. Tariff palan selection.');      gotoxy(3, 8);
+     Writeln('6. Recording list to file.');   gotoxy(3, 9);
+     Writeln('7. Recording list from file.');  gotoxy(3, 10);
+     Writeln('ESC - exit.'); 
+          key := readkey;
+         case key of //menu item selection
+               '1': add(spis, tar, inter_traf, min, plata);   // 1. Insert a new fare to the list.
+               '2': print(spis); // 2. View fares.
+               '3': del_spisok(spis);  // 3.Delete the entire list.
+               '4': delete_el_znach(spis, tar);  // 5. Removal of the tariff plan by name.
+               '5': podbor(spis, tar, inter_traf, min, plata); // 8. Selection of the tariff plan.
+               '6': save(spis, f);  // 6. Recording list to file
+               '7': load(spis, f);   // 7. Recording list from file.
+             
+          End;
+     until key = #27; //-Esc key code - exit the loop and program
+   end;
+
+ //===== MAIN PROGRAM ============================ 
+VAR
+     f: file of tarif;
+     spis: adr; 
+      tar: string[20];  
+      inter_traf: integer; 
+      min: integer; 
+      plata: integer; 
+      key: char;
+    
+BEGIN
+standart;
+menu;
+readln; 
+END.

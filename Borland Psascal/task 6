@@ -1,0 +1,74 @@
+// ---=== Task topic - Exploring the string data type. ---------
+// Task: Given a string of characters S, consisting of Latin letters. Groups of characters separated by spaces and not containing 
+// spaces within themselves will be called words. Convert the source line to the lines S1 and S2 in accordance with 
+// paragraphs 1 and 2 (p.1, p.2). If any of the result lines is empty, output the appropriate message.
+// p.1. - Type in words other than the last word, in which the letters are ordered alphabetically.
+// p.2. - Type all the words other than the last word, moving the first letter to the end of the word.
+
+
+program lab2;
+uses crt;
+const
+ Sabc = 'abcdefghijklmnopqrstuvwxyz'; {to check the presence in the string of Latin letters}
+var
+ S, S1, S2, SOrder, SLast: string; {lines: S - initial, S1, S2 - required}
+				     {SOrder – single word from space to space}
+                                               {SLast – the last word}
+    i: integer;
+    flag: boolean;
+    
+begin   {Entering a string and checking for the presence of only Latin letters and spaces}
+     while 1=1 do
+     begin
+           flag:= false; 
+           writeln('Enter character strings: ');
+           readln(S);
+           for i:=1 to length(S) do {check the entire length of the string}
+             begin
+               case S[i] of
+                    'a'..'z', ' ': flag := true; 
+                    else 
+                    	begin
+                       	 write('The string is invalid, '); 
+                        	flag:=false; 
+                        	break;  {interrupt the cycle}
+                   	end;
+               end;
+           end;
+       if flag = true then break;
+     end;
+     
+{========== Remove extra spaces at the end of a line: =========}
+     while S[length(S)] = ' ' do delete(S, length(S), 1);
+     
+{============= Finding the last word: =========}
+     while S[length(S)] <> ' ' do
+       begin
+             insert(S[length(S)], SLast, 1);
+             delete(S, length(S), 1);
+       end;
+
+{====== Search for words and sort them by lines according to the condition: =====}
+     i:=1;
+     repeat
+           if S[i] <> ' ' then 
+  SOrder := concat(SOrder, S[i]) {took away from S only characters from space to space}
+           else
+           begin 	{we check the condition for non-equality of the last word}
+                if SOrder <> SLast then
+                  begin
+                    if SOrder = copy(Sabc,1,length(SOrder)) then 
+                      S1:=concat(S1,SOrder,' '); 
+                      S2:=S2+  copy(SOrder, 2, length(SOrder)-1) +  copy(SOrder, 1, 1) + ' ';
+                      SOrder := '';
+                  end
+                else SOrder := '';
+           end;
+           inc(i);
+     until i = length(S) + 1;
+     
+               {======= Display the results ==========}
+     writeln('S1: ',S1);
+     Writeln('S2: ',S2);
+     repeat until keypressed;
+end.

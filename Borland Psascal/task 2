@@ -1,1 +1,137 @@
+//--------- The theme - The study of multiple data types.
+Create a Pascal program containing operations and standard procedures for working with sets ---
+//The task:  Given 3 sets X1, X2, X3, containing integers from the range 1..100. The power of each set is 10. To form a new set Y.
+//On the screen to display: 1) the original sets, 2) the resulting sets. The values of the elements of the original sets 
+//enter from \the keyboard.
+// Y = (X1 + X2) * (X2 + X3).
+// From the set Y, select the subset Y1, which consists of numbers divisible by 7 without a remainder. Determine the power of the set Y1.
 
+
+program KW;
+
+uses crt;
+const
+     defPower = 10;{given power of sets X1, X2, X3}
+     N = 100;
+
+type
+     MySet = set of 1..N;{specified type of set}
+
+{== Input validation function: within 1..100 and this is numbers ==}
+function fReadInt(question: string): integer;
+var
+     str: string;     {str - the string that is entered}
+     code, result1: integer;{code - entered something, result1 - numbers entered}
+begin
+     code := 1;
+     while code <> 0 do
+     begin
+          write(question);
+          readln(Str);    {read characters entered}
+          val(str, result1, code);    {convert the string to numbers}
+          if (code <> 0) or (result1 < 1) or (result1 > 100) then
+          begin
+               code := 1;
+               writeln('Wrong input. Enter a number within 1..100');
+          end;
+     end;
+     fReadInt := result1;   
+end;
+
+ {======= The function of calculating the power of the set Y, Y1 ==========}
+function fPower(var S: MySet): integer;
+var
+     result2, i: integer;{result2 - the number of numbers in the set, that is - power} 
+                                      {i - entered numbers [1..100]}
+begin
+     result2 := 0;
+     for i := 1 to N do
+          if i in S then
+               inc(result2);  {increase power (counter)}
+     fPower := result2;
+end;
+
+{======= The procedure for filling sets X1, X2, X3 while their power is not
+    will be equal to defPower  ========================}
+procedure prReadSet(var S: MySet);
+var
+     buf, Count: integer;     {buf- input numbers
+                                          Count - counts the number of numbers entered}
+     tmp: string;{No. of the order of input numbers (Element number ...))}
+begin
+     Count := 1;   {start counting with unit}
+     while Count <= defPower do
+     begin
+          str(Count, tmp);    {str - Converts a number to a string}
+          buf := fReadInt('Element №' + tmp + ': ');
+          while buf in S do
+          begin
+               writeln(' This number is already in the set. Enter another number ');
+               buf := fReadInt(' Element №' + tmp + ': ');
+          end;
+          S := S + [buf];
+          inc(Count);
+     end;
+end;
+
+{========= The procedure for displaying sets on the screen  ==============}
+procedure prPrintSet(S: MySet);
+var
+     i: integer;
+begin
+     for i := 1 to N do
+          if i in S then
+          begin
+               write(i);
+               write(', ');
+          end;
+     write;
+end;
+
+ {************** MAIN PROGRAM  ************************}
+var
+     X1, X2, X3, Y, Y1: MySet;
+     i: integer;
+     tmp: string;
+
+begin{We initialize sets with empty values.}
+     X1 := [];
+     X2 := [];
+     X3 := [];
+     Y := [];
+     Y1 := [];
+     clrscr;
+     
+     {========= We request the elements of the sets Х1, Х2, Х3 ============}
+     writeln(' Enter the elements of the set Х1: ');
+     prReadSet(X1);writeln;  	 	
+     writeln(' Enter the elements of the set Х2: ');
+     prReadSet(X2);writeln;  	
+     writeln(' Enter the elements of the set Х3: ');
+     prReadSet(X3);writeln;        	
+     
+     write('X1 = ');
+     prPrintSet(X1); writeln;
+     write('X2 = ');
+     prPrintSet(X2); writeln;
+     write('X3 = ');
+     prPrintSet(X3); writeln;writeln;
+     
+     {======= Calculate the value set Y =================}     
+     write('Y = (X1 + X2) * (X2 + X3) = ');Y := (X1 + X2) * (X2 + X3);
+     prPrintSet(Y);   
+     
+     {====== Add to the set Y1 the numbers divisible by 7 without a remainder ===}
+     for i := 1 to N do 
+          if i in Y then 
+               if ((i mod 7) = 0) then
+                    Y1 := Y1 + [i];
+     writeln;       
+     
+     writeln(' Y1 - elements of the set Y, divisible by 7 without remainder '); 
+     write(' Set of numbers Y1 = ');
+     prPrintSet(Y1);
+     
+     write(' Power y1 = ', fPower(Y1));	
+     readln;
+end.   

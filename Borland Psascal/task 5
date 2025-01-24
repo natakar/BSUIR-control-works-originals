@@ -1,0 +1,78 @@
+// --------- Iterative cycles. --------------------
+//The task:  Calculate the values of the functions f1 (x) and f2 (x) for the values of the arguments specified 
+// in the variants of tasks No. 1 - 30 according to the first work.
+// The function f2 (x) is calculated for a number of accuracy. For the specified accuracy e = 10(-2); e = 10(-3); e = (10-4) determine
+// the number N of elements of the series that can be summed to achieve the specified accuracy.
+
+// task condition — see task 5.1 — task condition 5
+
+
+
+Uses Crt; 
+const
+  eps1 = 0.01;      {Accuracy  10-2}
+  eps2 = 0.001; 	{Accuracy  10-3 }
+  eps3 = 0.0001;	{Accuracy  10-4 }
+  a = -0.6; 		  {Initial value Х}
+  b = 0.05;		  {Step} 
+  N = 20;{Number of function values}
+
+var
+  k1, k2, k3, i: Integer;    {Auxiliary variables}			  
+  f1, f2_1, f2_2, f2_3, step, slag, x: Real;
+
+begin
+  ClrScr;
+    {The table head is drawn}
+  writeln(' ________________________________________________________________');
+  writeln('|       |          | e=0.01       |  e=0.001     |  e=0.0001    |');
+  writeln('|    x  |  f1(x)   |-------- -----|--------------|--------------|');
+  writeln('|       |          | f2(x)    | N | f2(x)    | N |  f2(x)   | N |');
+  writeln('|_______|__________|__________|___|__________|___|__________|___|');
+  writeln; 
+  x := a;   {Initial value Х}
+  for i := 1 to N do    
+  begin { ============ Calculates the value of the function f1  ========}
+    f1 := ((sqr(x) * x) / 12) + 1 / 16 * ((sqr(x) * sqr(x)) - 1) * ((ln((1 + x) / (1 - x)) - 2 * arctan(x)));
+    
+      {  =============== Calculate the values of the function f2  ========}
+    step := x * x * x * x * x * x * x;		{The initial value of the degree X}
+    k1 := 0; 
+    f2_1 := step / 21;    {The initial value of the function f2_1} 
+    
+    repeat           {Iteration loop for 10-2 accuracy}
+      inc(k1); 
+      step := step * x * x * x * x;        {Increasing degree}
+      slag := step /((4 * k1 + 3) * (4 * k1 + 7));  {Considered another addend}               
+      f2_1 := f2_1 + slag;            { The value of f2_1 is calculated by the formula}
+    until abs(slag) <= eps1;        {Exit from the cycle: the term < accuracy 10-2}
+    
+    f2_2 := f2_1; 
+    k2 := k1;  
+    
+    repeat{============== Iteration loop for accuracy 10-3 =====}
+      inc(k2);
+     step := step * x * x * x * x;        {Increasing degree}
+      slag := step /((4 * k2 + 3) * (4 * k2 + 7));  {Considered another addend.}               
+      f2_2 := f2_2 + slag;    
+    until abs(slag) <= eps2;  {Exit from the cycle: the term < accuracy 10-3}
+    
+    f2_3 := f2_2;   	
+    k3 := k2;		
+    
+    repeat{============== Iteration loop for 10-4 accuracy =====}
+      inc(k3);
+      step := step * x * x * x * x;        {Increasing degree}
+      slag := step /((4 * k3 + 3) * (4 * k3 + 7));  {Considered another addend}               
+      f2_3 := f2_3 + slag;                
+    until abs(slag) <= eps3;  {Exit from the cycle: the term < accuracy10-4}
+    
+      { ======= Displaying the results on the screen: ==============}
+    writeln('| ', x:4:2, ' | ', f1:7:6, '| ', f2_1:9:6, '| ',
+      k1:2, '| ', f2_2:9:6, '| ', k2:2, '| ', f2_3:9:6, '| ', k3:2, '|');
+    x := x + b;  	{ b = 0.05 – Step} 
+  end;  {======  table completion ===================} 
+  write('---------------------------------------------------------------');
+  writeln;
+  ReadKey;
+end.

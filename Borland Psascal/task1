@@ -1,0 +1,40 @@
+// -------- Job Theme - Cyclic Computational Process --------------------------
+//The task: Find the numbers for which the permutation of the last digit to the beginning increases it N times. 
+
+
+program Multiplicity;
+
+var
+     c, d, s, a: longint; {c - number per digit less than A}
+                                {d is A, so as not to change the value of A and determine
+                  digit capacity of number A}
+                                {a-Initial, up to 1,000,000}
+                                {s-finite number (required)}
+     N, b, k: integer; {N- multiplicity (we specify)}
+                                {b - the last digit of the initial number A}
+                                {k - digit capacity of number A}
+begin
+     write('N= ');read(N);
+     a := 10;           {-number must be at least two-digit}
+     while a < 1000000 do      {while range up to 1 million}
+     begin
+          b := a mod 10;        {b - the last digit in the initial number A}
+          c := a div 10;          {s - a smaller number we have}
+          k := 1;                     {k - digit capacity of number A}
+          d := a; 		      {to find the digit of A}
+          while d >= 10 do
+          begin
+               d := d div 10;  {smashed into 10s to count the number of digits. In the end
+                cycle, we get d equal to the number <10}
+               k := k * 10; {k - digit capacity (ck-ko cycles, multiplied by 10 as many times)}
+          end;
+          s := c + b * k;      {new number (rearranged the last digit to the beginning)}
+          if s / a = N then    {condition for finding the numbers of the problem}
+          begin
+               writeln(' a = ', a, ' s = ', s);
+               a := a + 1;            {go to the next number}
+          end
+          else a := a + 1;      {go to the next number}
+     end;
+end.
+
