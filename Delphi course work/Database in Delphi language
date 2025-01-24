@@ -1,0 +1,392 @@
+// //------- Develop software in the development environment of Delphi for database management - "Software Catalog on CDs". This tool 
+// should ensure the systematization of catalog information: adding, deleting records, searching for and sorting them. -------------
+
+
+// LISTING PROGRAMS IN THE  DELPHI LANGUAGE
+
+
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, Grids, ExtCtrls, Buttons, Menus;
+
+type
+    PCatalog = ^Catalog;
+  Catalog = Record
+	 Subject : String[50]; {Subject - категория ПО (прикладное ПО, 
+					системное);}
+             Title: String[50];        {Title -     название ПО;}
+              Number: String[50];  {Number - количество дисков;}
+              Next : PCatalog;    {Next - указатель на следующий элемент списка}
+              end;
+
+  TFrmMain = class(TForm)
+    pnlOperations: TPanel;
+    pnlSearch: TPanel;
+    pnlSorting: TPanel;
+    lblOperations: TLabel;
+    btnAdd: TButton;
+    btnDelete: TButton;
+    lblSearch: TLabel;
+    EdtTitleSearch: TEdit;
+    EdtNumberSearch: TEdit;
+    BtnTitleSearch: TButton;
+    BtnNumberSearch: TButton;
+    RG: TRadioGroup;
+    MainMenu1: TMainMenu;
+    mniLoad: TMenuItem;
+    mniSave: TMenuItem;
+    OpenDialog1: TOpenDialog;
+    SaveDialog1: TSaveDialog;
+    SG: TStringGrid;
+    N1: TMenuItem;
+    btnInsert: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure mniSaveClick(Sender: TObject);
+    procedure mniLoadClick(Sender: TObject);
+    procedure N1Click(Sender: TObject);
+    procedure btnAddClick(Sender: TObject);
+    procedure btnInsertClick(Sender: TObject);
+    procedure btnDeleteClick(Sender: TObject);
+    procedure BtnTitleSearchClick(Sender: TObject);
+    procedure BtnNumberSearchClick(Sender: TObject);
+    procedure EdtTitleSearchClick(Sender: TObject);
+    procedure EdtNumberSearchClick(Sender: TObject);
+    procedure RGClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmMain: TFrmMain;
+  Head: PCatalog;
+
+implementation
+
+uses u_f2;
+
+{$R *.dfm}
+//----------------------------------------------------------------------------
+
+//1 ==== создание главной формы ===========================
+procedure TFrmMain.FormCreate(Sender: TObject);
+begin
+     Sg.ColWidths[0] := 220;
+     Sg.ColWidths[1] := 220;
+     Sg.ColWidths[2] := 135;
+     Sg.Cells[0,0] := ' КАТЕГОРИЯ';
+     Sg.Cells[1,0] := ' НАИМЕНОВАНИЕ';
+     Sg.Cells[2,0] := ' КОЛИЧЕСТВО';
+     ChDir(ExtractFilePath(Application.ExeName));
+     FrmMain.OpenDialog1.DefaultExt := 'Все файлы (*.*) |*.*| Файлы Exel (*.dat) |*.dat | Текстовые файлы (*.txt) |*.txt|';
+     OpenDialog1.Title:= 'Загрузить Файл';
+     FrmMain.OpenDialog1.Filter := 'Все файлы (*.*) |*.*| Файлы Exel (*.dat) |*.dat | Текстовые файлы (*.txt) |*.txt|';
+     FrmMain.SaveDialog1.DefaultExt := 'Выберите тип файла | | Файлы Exel (*.dat) |*.dat | Текстовые файлы (*.txt) |*.txt| Все файлы (*.*) |*.*|';
+     SaveDialog1.Title:= ' Сохранить Файл';
+     FrmMain.SaveDialog1.Filter := 'Выберите тип файла | | Файлы Exel (*.dat) |*.dat | Текстовые файлы (*.txt) |*.txt| Все файлы (*.*) |*.*|';
+end;
+
+//2===== вопрос при закрытии проекта (Y/N) ======================
+procedure TFrmMain.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+   If MessageDlg('Завершить приложение?', mtConfirmation,  mbOkCancel, 0) = mrOk Then
+     Action := caFree  {Нажата Ok - закрываем форму}
+  Else
+     Action := caNone;   {Нажата Cancel - игнорируем закрытие}
+end;
+
+//3 ======== Сохранение списка в файл =========================
+procedure TFrmMain.mniSaveClick(Sender: TObject);
+var
+  f: TStrings;
+  i, j: word;
+begin
+   f := TStringList.Create;
+     try
+           with sg do
+     for i := 0 to (ColCount-1) do  {Столбцы}
+          for j := 1 to (RowCount-1) do
+                    f.Add(Cells[i, j]);
+          if FrmMain.SaveDialog1.Execute then
+               f.SaveToFile(FrmMain.SaveDialog1.FileName);
+     finally
+          f.Free;
+     end;   
+end;
+
+//4 ===== открыть (Загрузить) из файла на форму в таблицу ============
+procedure TFrmMain.mniLoadClick(Sender: TObject);
+var
+     f: TStrings;
+     i, j, n: word;
+begin
+     f := TStringList.Create;
+     try
+          n := 0;
+          if FrmMain.OpenDialog1.Execute then
+          begin
+               f.LoadFromFile(FrmMain.OpenDialog1.FileName);
+               with sg do
+            for i := 0 to (ColCount-1) do 
+              for j := 1 to (RowCount-1) do
+                    begin
+                         Cells[i, j] := f.Strings[n];
+                         inc(n);
+                    end;
+          end;
+     finally
+     f.Free;
+     end;
+end;
+
+//5 ==== Очищение всего списка =================================
+procedure TFrmMain.N1Click(Sender: TObject);
+var
+     i, j: word;
+begin
+
+  with sg do
+     for i := 0 to (ColCount-1) do 
+          for j := 1 to (RowCount-1) do    
+               Cells[i, j] := '';    
+end;
+
+//6 ==== при нажатии на кнопку "Добавить" появляется вторая форма ====
+procedure TFrmMain.btnAddClick(Sender: TObject);
+begin
+  FrmNewDisk.Show;
+end;
+
+//7 ==== Процедура вставки пустой строки ========================
+procedure SGInsertRow(SG: TStringGrid; NewRow: Integer);
+var
+  i: Integer;
+begin
+   with SG do
+  begin
+    RowCount := RowCount + 1;
+   if NewRow < RowCount - 1 then
+    begin
+      for i := RowCount - 1 downto NewRow + 1 do
+        Rows[i].Assign(Rows[i - 1]);
+    end;
+    Rows[NewRow].Clear;
+  end;
+end;
+
+//8 ==== Вставка пустой строки =============================
+procedure TFrmMain.btnInsertClick(Sender: TObject);
+begin
+ SGInsertRow(SG, SG.Row + 1);
+end;
+
+//9 ===== Удаление строки ====================================
+procedure TFrmMain.btnDeleteClick(Sender: TObject);
+var
+  i,j: Integer;
+begin
+  j:= SG.Row;      {строка с выделением}
+  if (j = 1) and (SG.RowCount <= 2) then
+   begin
+    with SG do
+     for i:= 0 to ColCount - 1 do Cells[i, j]:= '';
+    exit;     {не удаляем последнюю строку чтобы не потерять фиксированной}
+   end;
+  SG.Rows[j].Clear;
+  for i:=j to SG.RowCount-2 do
+    SG.Rows[i].Assign(SG.Rows[i+1]);
+  SG.RowCount:= SG.RowCount-1;
+end;
+
+//10 ==== очищение строк поиска для ввода строки =================
+procedure TFrmMain.EdtTitleSearchClick(Sender: TObject);
+begin
+ EdtTitleSearch.Clear;
+end;
+
+procedure TFrmMain.EdtNumberSearchClick(Sender: TObject);
+begin
+   EdtNumberSearch.Clear;
+end;
+//11 ==== процедура печати искомой строки ========================
+  procedure PrintSearch(Searching: string; T: integer);
+var
+     H, Temp, PrintDisk: PCatalog;
+     Comparing: string; 
+begin
+     with FrmMain do
+     begin
+       PrintDisk := nil;
+       H := Head;
+       while H <> nil do
+       begin
+          if T = 1 then
+            Comparing := H^. Title
+          Else
+          Comparing := H^.Number;
+          if Pos(AnsiLowerCase(Searching), AnsiLowerCase(Comparing)) <> 0 then
+          begin
+            if PrintDisk = nil then
+              begin
+                New(PrintDisk);
+                PrintDisk^ := H^;
+                PrintDisk^.Next := nil;
+              End
+            else
+            begin
+              Temp := PrintDisk;
+              while Temp^.Next <> nil do
+              Temp := Temp^.Next;
+              New(Temp^.Next);
+              Temp^.Next^ := H^;
+              Temp^.Next^.Next := nil;
+            end;
+          end;
+          H := H^.Next;
+       end;
+       if PrintDisk = nil then
+          ShowMessage( ' Диск не найден ')
+       else
+       begin
+          Sg.RowCount := 1;
+          while PrintDisk <> nil do
+          begin
+              Sg.RowCount := Sg.RowCount + 1;
+              Sg.Cells[0, Sg.RowCount - 1] := PrintDisk^.Subject;
+              Sg.Cells[1, Sg.RowCount - 1] := PrintDisk^.Title;
+              Sg.Cells[2, Sg.RowCount - 1] := PrintDisk^.Number;
+              Temp := PrintDisk;
+              PrintDisk := PrintDisk^.Next;
+              Dispose(Temp);
+          end;
+       end;
+     end;
+end;
+
+//12 ==== поиск по наименованию ==========================
+procedure TFrmMain.BtnTitleSearchClick(Sender: TObject);
+begin
+  PrintSearch(EdtTitleSearch.Text, 2);
+end;
+
+//13 ==== поиск по количестку ================================
+procedure TFrmMain.BtnNumberSearchClick(Sender: TObject);
+begin
+  PrintSearch(EdtNumberSearch.Text, 1);
+end;
+
+//14 ==== процедура сортировки =============================
+procedure SGSort(SG: TStringGrid; NoCol: Integer);
+var
+  Line, PosAct: Integer;
+  Row: TStringList;
+  Reng : TStringList;
+
+begin
+  Row := TStringList.Create;
+  Reng := TStringList.Create;
+  for  Line := 1 to SG.RowCount-1 do
+  begin
+    PosAct :=  Line; 
+    Row.Assign(SG.Rows[PosAct]);
+    while True do
+    begin
+      if (PosAct = 0) or (Row.Strings[NoCol] >= SG.Cells[NoCol, PosAct-1])
+      then break;
+      SG.Rows[PosAct] := SG.Rows[PosAct-1];
+      Dec(PosAct);  {по убывающей}
+    end;
+    if (Row.Strings[NoCol] < SG.Cells[NoCol, PosAct]) then
+      SG.Rows[PosAct].Assign(Row);
+  end;
+  Row.Free;
+  Reng.Free;
+end;
+
+//15 ====== при нажатии на одну из кнопок сортировки ============
+procedure TFrmMain.RGClick(Sender: TObject);
+begin
+  with FrmMain.SG do
+  begin
+       if Rg.ItemIndex = 0 then
+          SGSort(SG, 1);      {сортируем по наименованию = name}
+     if Rg.ItemIndex = 1 then
+          SGSort(SG, 2);
+
+  end;     
+end;
+
+end. //---- end unit Unit1
+
+//================ unit u_f2 =============================
+unit u_f2;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, Unit1;
+
+type
+  TFrmNewDisk = class(TForm)
+    lLblSubject: TLabel;
+    LblTitle: TLabel;
+    LblNumber: TLabel;
+    EdtTitle: TEdit;
+    EdtNumber: TEdit;
+    BtnAddNewDisk: TButton;
+    cbbSubject: TComboBox;
+    procedure BtnAddNewDiskClick(Sender: TObject);
+    procedure EdtTitleClick(Sender: TObject);
+    procedure EdtNumberClick(Sender: TObject);
+
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmNewDisk: TFrmNewDisk;
+
+implementation
+
+{$R *.dfm}
+ //-----------------------------------------------------------------------------
+
+//1==== добавление новой строки при нажатии на кнопку "Добавить" ====
+procedure TFrmNewDisk.BtnAddNewDiskClick(Sender: TObject);
+var i: Integer;
+begin
+ with FrmMain.SG do
+       begin
+       case cbbSubject.ItemIndex of
+         0: cells[0,rowcount-1]:= cbbSubject.Items[0];
+         1: cells[0,rowcount-1]:= cbbSubject.Items[1];
+       end;
+      cells[1,rowcount-1]:= EdtTitle.text;
+      cells[2,rowcount-1]:= EdtNumber.text;
+      rowcount := rowcount+1;
+    end;
+    //close;
+ end;
+
+//2 ===== Очищение поля Edit при клике на него  ================
+procedure TFrmNewDisk.EdtTitleClick(Sender: TObject);
+begin
+EdtTitle.clear;
+end;
+
+procedure TFrmNewDisk.EdtNumberClick(Sender: TObject);
+begin
+ EdtNumber.Clear;
+end;
+
+end.
