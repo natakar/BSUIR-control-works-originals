@@ -1,0 +1,653 @@
+//------- Develop software in the development environment of Delphi for database management - "Software Catalog on CDs". This tool 
+// should ensure the systematization of catalog information: adding, deleting records, searching for and sorting them. -------------
+
+// LISTING PROGRAM USING DYNAMIC VARIABLES (in delphi environment)
+
+
+
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, Grids, ExtCtrls, Buttons, Menus;
+
+type
+    PCatalog = ^Catalog;
+  Catalog = Record
+	 Subject : String[50]; {Subject - категория ПО (прикладное ПО, 
+      системное);}
+             Title: String[50];        {Title -     название ПО;}
+              Number: String[50];  {Number - количество дисков;}
+              Next : PCatalog; {Next - указатель на следующий элемент списка.}
+              end;
+
+   TFrmMain = class(TForm)
+    pnlOperations: TPanel;
+    pnlSearch: TPanel;
+    pnlSorting: TPanel;
+    lblOperations: TLabel;
+    btnAdd: TButton;
+    btnDelete: TButton;
+    lblSearch: TLabel;
+    EdtTitleSearch: TEdit;
+    EdtNumberSearch: TEdit;
+    BtnTitleSearch: TButton;
+    BtnNumberSearch: TButton;
+    RG: TRadioGroup;
+    OpenDialog1: TOpenDialog;
+    SaveDialog1: TSaveDialog;
+    SG: TStringGrid;
+    btnInsert: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure mniSaveClick(Sender: TObject);
+    procedure mniLoadClick(Sender: TObject);
+    procedure N1Click(Sender: TObject);
+    procedure btnAddClick(Sender: TObject);
+    procedure btnInsertClick(Sender: TObject);
+    procedure btnDeleteClick(Sender: TObject);
+    procedure BtnTitleSearchClick(Sender: TObject);
+    procedure BtnNumberSearchClick(Sender: TObject);
+    procedure EdtTitleSearchClick(Sender: TObject);
+    procedure EdtNumberSearchClick(Sender: TObject);
+    procedure RGClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmMain: TFrmMain;
+  Head: PCatalog;
+  IsAdded: Boolean;
+
+implementation
+
+uses u_f2;
+
+{$R *.dfm}
+//-------------------------------------------------------------------------
+
+//1 ==== создание главной формы ======================
+procedure TFrmMain.FormCreate(Sender: TObject);
+var
+     F: TextFile;
+     C: char;
+     S: string;
+     H: PCatalog;
+     i: integer;  // i - номер печатающейся строки
+begin
+   {присваиваем фиксированной строке таблицы имена, устанавливаем
+ ширину столбцов}
+     Sg.ColWidths[0] := 220;
+     Sg.ColWidths[1] := 220;
+     Sg.ColWidths[2] := 135;
+     Sg.Cells[0,0] := ' КАТЕГОРИЯ';
+     Sg.Cells[1,0] := ' НАИМЕНОВАНИЕ';
+     Sg.Cells[2,0] := ' КОЛИЧЕСТВО';
+
+     if FileExists('Data.txt') then  {если файл с данными есть}
+     begin
+          AssignFile(F, 'Data.txt');  {открываем файл F для чтения}
+          Reset(F);
+          i := 1; 	{i - номер печатающейся строки}
+          while not Eof(F) do  {пока не конец файла}
+          begin
+            // если список пуст -----------
+               if Head = nil then
+               begin
+                    New(Head);   {создаём список, считыв данные о I диске из файла}
+                    Read(F, C);
+                    case strtoint(C) of
+                        0: Head^.Subject := 'Прикладное ПО';
+                        1: Head^.Subject := 'Системное ПО';
+                    end;
+                    Read(F, C, C);
+                    S := '';
+                    while C <> ' ' do
+                    begin
+                         S := S + C;
+                         Read(F, C);
+                    end;
+                    Head^.Title := S;
+	
+                    S := '';
+                    Read(F, C);
+                    while C <> ' ' do
+                    begin
+                         S := S + C;
+                         Read(F, C);
+                    end;
+                    Head^.Number := S;
+                    Head^.Next := nil;
+                  //==== вывод списка( I элемента) на экран ======
+                    Sg.RowCount := Sg.RowCount + 1; {добавляем вначале пустую 
+								cтроку}
+                    Sg.Cells[0, 1] := Head^.Subject;
+                    Sg.Cells[1, 1] := Head^.Title; 
+                    Sg.Cells[2, 1] := Head^.Number;                 
+               End
+               else
+        // если список не пуст ------------
+               begin
+                    Readln(F);  {считываем данные о диске из файла и добавляем в 
+				 cписок}
+                    H := Head;
+                    while H^.Next <> nil do
+                         H := H^.Next;
+                    New(H^.Next);
+                    H := H^.Next;
+                    Read(F, C);
+                    case strtoint(C) of
+                      0: Head^.Subject := 'Прикладное ПО';
+                      1: Head^.Subject := 'Системное ПО';
+                    end;
+                    Read(F, C, C);
+                    S := '';
+                    while C <> ' ' do
+                    begin
+                         S := S + C;
+                         Read(F, C);
+                    end;
+                    H^.Title := S;
+                    S := '';
+                    Read(F, C);
+                    while C <> ' ' do
+                    begin
+                         S := S + C;
+                         Read(F, C);
+                    end;
+                    H^.Number := S;
+                    H^.Next := nil;
+               {вывод на экран следующего диска}
+                    Sg.RowCount := Sg.RowCount + 1;
+                    i := i + 1;		 {очередная строчка}                   
+                    Sg.Cells[0, 1] := H^.Subject;
+                    Sg.Cells[1, 1] := H^.Title; 
+                    Sg.Cells[2, 1] := H^.Number;                 
+               end;
+          end;
+          CloseFile(F);  {закрываем файл}
+     end;
+end; //---FormCreate
+
+//2===== при закрытии проекта =====================
+procedure TFrmMain.FormClose(Sender: TObject; var Action: TCloseAction);
+var
+     F: TextFile; 
+begin
+   AssignFile(F, 'Data.txt');  {связываем переменные и файл}
+     if Head <> nil then
+     begin			{создаём новый файл}
+          Rewrite(F); 		{откр для записи}
+          while Head <> nil do {проходимся по каждому элементу списка}
+          begin			{записываем информацию в файл}
+	       if Head^.Subject := 'Прикладное ПО' then
+                    write(F, '0 ')
+               else if Head^.Subject := 'Системное ПО' then
+                    write(F, '1 ');
+               write(F, Head^.Title, ' ');               
+               if Head^.Next = nil then  {если текущ диск - последний, то пишем в
+ файл последнее поле} 
+     write(F, Head^.Number)
+                 else  {если текущ диск - не последний, то после записи последнего
+     поля (Number) в файл - переход на следующую строку файла}
+                writeln(F, Head^.Number);   
+               Head := Head^.Next;  {переход к следующему диску}
+          end;
+          CloseFile(F); {закрываем файл}
+     end;
+   If MessageDlg('Завершить приложение?', mtConfirmation,  mbOkCancel, 0) = mrOk Then
+     Action := caFree {Нажата Ok - закрываем форму.}
+  Else
+     Action := caNone; {Нажата Cancel - игнорируем закрытие.}
+end;  //---FormClose
+
+//3 ====== при нажатии на кнопку "Добавить" появляется вторая форма ==
+procedure TFrmMain.btnAddClick(Sender: TObject);
+begin
+     with FrmNewDisk do 
+     begin	{очищаем поля компонентов на второй форме}
+          cbbSubject.ItemIndex := 0;	 {меняем с -1 на первый вариант в
+ Combobox.ItemIndex}
+          EdtTitle.Text := '';	
+          EdtNumber.Text := '';	
+          IsAdded := true;		{глобальная var IsAdded: Boolean;}
+          FrmNewDisk.Show;          // открываем вторую форму
+     end;
+end;  //---btnAddClick
+
+//4 ==== Процедура вставки пустой строки ======================
+procedure SGInsertRow(SG: TStringGrid; NewRow: Integer);
+var
+  i: Integer;
+begin
+   with SG do
+  begin
+    RowCount := RowCount + 1;
+   if NewRow < RowCount - 1 then
+    begin
+      for i := RowCount - 1 downto NewRow + 1 do
+        Rows[i].Assign(Rows[i - 1]);
+    end;
+    Rows[NewRow].Clear;
+  end;
+end;  //---SGInsertRow
+
+//6 ==== Вставка пустой строки ========================
+procedure TFrmMain.btnInsertClick(Sender: TObject);
+begin
+ SGInsertRow(SG, SG.Row + 1);
+end; //---btnInsertClick
+
+//7 ===== Удаление строки ===========================
+procedure SGDeleteRow(RowNumber: integer);
+var
+   i: integer;
+begin
+     with FrmMain do 
+     begin
+          Sg.Row := RowNumber;
+          if Sg.Row = Sg.RowCount-1 then	 {если удаляем последнюю строку 
+								таблицы}
+               Sg.RowCount := Sg.RowCount-1
+          else
+          begin		{если строка - не последняя}
+               for i := RowNumber to Sg.RowCount-1 do
+                    Sg.Rows[i] := Sg.Rows[i + 1];
+               Sg.RowCount := Sg.RowCount-1;
+          end;
+     end;
+end;  //---SGDeleteRow
+
+//8 ===== при нажатии на кнопку "Удалить" ===============
+procedure TFrmMain.btnDeleteClick(Sender: TObject);
+var
+  H, Temp: PDisk;
+begin
+     H := Head;
+     if Sg.Row <> 0 then  {если выделена не шапка таблицы}
+     begin  {если данные I элемента в списке совпадают с данными диска
+        выделенной строки таблицы, то удаляем I эл-т из списка и чистим память}
+        if (H^.Subject = Sg.Cells[0, Sg.Row]) and (H^.Title = Sg.Cells[1,Sg.Row]) and (H^. Number = Sg.Cells[2, Sg.Row]) then
+          begin
+               Temp := Head;
+               Head := Head^.Next;
+               Dispose(Temp);
+          End
+          else 	         {ищем совпадения данных текущего элемента с данными в 
+выделенной строке таблицы, потом удаляем этот элемент из
+ списка и чистим память}
+          begin
+               while (H^.Next^.Subject <> Sg.Cells[0, Sg.Row]) and (H^.Next^.Title <> Sg.Cells[1,Sg.Row]) and (H^.Next^.Number <> Sg.Cells[2, Sg.Row])  do
+                    H := H^.Next;
+               Temp := H^.Next;
+               H^.Next := H^.Next^.Next;
+               Dispose(Temp);
+          end;
+          {удаляем данные элемента из таблицы}
+          SGDeleteRow(Sg.Row); 
+     end;
+end;  //---btnDeleteClick
+
+//9 ==== очищение строк поиска для ввода строки ================
+procedure TFrmMain.EdtTitleSearchClick(Sender: TObject);
+begin
+ EdtTitleSearch.Clear;
+end;   //---EdtTitleSearchClick
+
+procedure TFrmMain.EdtNumberSearchClick(Sender: TObject);
+begin
+   EdtNumberSearch.Clear;
+end; //---EdtNumberSearchClick
+
+//10 ==== процедура печати искомой строки ====================
+  procedure PrintSearch(Searching: string; T: integer);
+var
+     H, Temp, PrintDisk: PCatalog;
+     Comparing: string; 
+begin
+     with FrmMain do
+     begin
+        PrintDisk := nil;
+        H := Head;
+        while H <> nil do
+        begin
+          if T = 1 then
+            Comparing := H^. Title
+          Else
+          Comparing := H^.Number;
+          if Pos(AnsiLowerCase(Searching), AnsiLowerCase(Comparing)) <> 0 then
+          begin
+            if PrintDisk = nil then
+            begin
+              New(PrintDisk);
+              PrintDisk^ := H^;
+              PrintDisk^.Next := nil;
+            end
+            else
+            begin
+              Temp := PrintDisk;
+              while Temp^.Next <> nil do
+              Temp := Temp^.Next;
+              New(Temp^.Next);
+              Temp^.Next^ := H^;
+              Temp^.Next^.Next := nil;
+            end;
+          end;
+          H := H^.Next;
+        end;
+        if PrintDisk = nil then
+          ShowMessage( ' Диск не найден ')
+        else
+        begin
+          Sg.RowCount := 1;
+          while PrintDisk <> nil do
+          begin
+            Sg.RowCount := Sg.RowCount + 1;
+            Sg.Cells[0, Sg.RowCount - 1] := PrintDisk^.Subject;
+            Sg.Cells[1, Sg.RowCount - 1] := PrintDisk^.Title;
+            Sg.Cells[2, Sg.RowCount - 1] := PrintDisk^.Number;
+            Temp := PrintDisk;
+            PrintDisk := PrintDisk^.Next;
+            Dispose(Temp);
+          end;
+        end;
+     end;
+end; //---PrintSearch
+
+//11 ==== поиск по наименованию =========================
+procedure TFrmMain.BtnTitleSearchClick(Sender: TObject);
+begin
+      PrintSearch(EdtTitleSearch.Text, 2);
+end;
+
+//12 ==== поиск по количестку ==============================
+procedure TFrmMain.BtnNumberSearchClick(Sender: TObject);
+begin
+  PrintSearch(EdtNumberSearch.Text, 1);
+end;
+
+//13 ==== процедура сортировки ================================
+procedure TFrmMain.Sort(SortType: integer);
+var
+  H,  N,   NewHead,  Temp:    PDisk;
+  DiskType,  NewDiskType,  RowNum,  ColNum:  integer;
+  CurName,  NewName:  String;  {NewName - диск из отсортированного списка,
+                         	   CurName - текущий диск. Строковые вел-ы для сравнения}
+begin
+       H := Head;
+     NewHead := nil;
+     while H <> nil do    {выполнять, пока не дойдем до конца списка}
+  begin        {DiskType - числовое значение категории текущего диска: 0, 1}
+       if H^.Subject = 'Прикладное ПО' then DiskType := 0
+          else if H^.Subject = 'Системное ПО' then  DiskType := 1; 
+{если сортированного списка нет, то создаём (голову)}
+        if NewHead = nil then	
+             begin
+               New(NewHead); 
+               NewHead^ := H^; 
+               NewHead^.Next := nil;  
+          End //---
+          else          
+ {если сортированный список есть}
+    begin
+       N := NewHead;     {N - назначаем новой головой}
+    			{если сортированный список состоит из 1 элемента и его 
+			   приоритет выше, чем текущего, то текущий ставим после 
+			сортированного}
+    	{СПИСОК = 1 ЭЛЕМЕНТ}
+      if NewHead^.Next = nil then
+         begin
+                    New(N^.Next);
+                    N^.Next^ := H^;
+                    N^.Next^.Next := nil;
+                 {SortType = 0, если сортируем по наименованию, 1 - по количеству}
+          	if SortType = 0 then  {сортируем по наименованию}
+              begin
+                CurName := H^.Title;
+                NewName := N^.Title;
+              end
+            else 		{SortType = 1 - по количеству}
+            begin
+              CurName := H^.Number;
+              NewName := N^.Number;
+            end;
+        {добавляем в сортир-ный список элемент из текущего списка}
+        	   if (AnsiLowerCase(CurName)) > (AnsiLowerCase(NewName)) then
+                  begin
+                    New(NewHead^.Next);   {создаем место для нового звена}
+                    NewHead^.Next^ := H^;
+                    NewHead^.Next^.Next := nil;
+                  end
+              else   {AnsiLowerCase(CurName) < AnsiLowerCase(NewName)}
+              begin
+                   Temp := NewHead;
+                   New(NewHead);
+                   NewHead^ := H^;
+                   NewHead^.Next := Temp;
+              end;
+         end   //---- if NewHead^.Next = nil
+      ELSE                   
+     {если в сортированном списке больше одного элемента}
+      {СПИСОК = БОЛЬШЕ ОДНОГО ЭЛЕМЕНТА}
+      begin
+          if SortType = 0 then 	{сортируем по наименованию}
+              begin
+                CurName := H^.Title;
+                NewName := N^.Title;
+              end
+          else 		{SortType = 1 - по количеству}
+          begin
+              CurName := H^.Number;
+              NewName := N^.Number;
+          end;
+{проверяем I элемент сортированного списка:}
+          if AnsiLowerCase(CurName) < AnsiLowerCase(NewName) then
+            begin
+              Temp := NewHead;
+              New(NewHead);
+              NewHead^ := H^;
+              NewHead^.Next := Temp;
+            End
+          else 	   {проверяем остальные элементы}
+          begin
+            repeat  {если дошли до конца отсортированного списка, то добавляем 
+		после последнего отсортированного элемента текущий элемент}
+              if N^.Next = nil then
+              begin
+                New(N^.Next);
+                N^.Next^ := H^;
+                N^.Next^.Next := nil;
+                break;
+              end;
+              if SortType = 0 then 	{сортируем по наименованию}
+                begin
+                  CurName := H^.Title;
+                  NewName := N^.Next^.Title;
+                end
+              else		{SortType = 1 - по количеству}
+              begin
+                CurName := H^.Number;
+                NewName := N^.Next^.Number;
+              end;
+         	       {если приоритет текущего диска > следующего за отсортированным, 
+то идем на следующий сортированный диск}
+              if(AnsiLowerCase(CurName)) > (AnsiLowerCase(NewName)) then
+                N := N^.Next
+              else  {если (приоритет текущего не равен приоритету следующего) 
+ИЛИ (приоритет текущ < следующего за отсортированным), 
+то добавляем текущий диск к отсортированным}
+              begin
+                Temp := N^.Next;
+                New(N^.Next);
+                N^.Next^ := H^;
+                N^.Next^.Next := Temp;
+                break;
+              end;
+            until N = nil; {повторяем, пока не пройдемся по всему сортированному 
+				списку}
+          end;
+          H := H^.Next;  {переход на следующий элемент(диск) текущего списка}
+      end;  //--- 1 или больше 1го элемента
+    end; // ---если сортированный список есть
+{когда прошли по всему текущему списку - отсортированный список готов,
+      неотсортированный список удаляем }
+     if Head <> nil then
+     begin
+          while Head <> nil do
+          begin
+               Temp := Head;
+               Head := Head^.Next;
+               Dispose(Temp);
+          end; 
+          Head := NewHead; 
+{печать отсортированного списка}
+          if  IsAdded = true then {var IsAdded: Boolean. Выбрана 1 из кнопок 
+					RadioGroup}
+               Sg.RowCount := Sg.RowCount + 1;
+          H := Head;
+          with FrmMain do	       
+           for RowNum := 1 to Sg.RowCount - 1 do
+           begin
+             for ColNum := 0 to 2 do
+               begin
+                  case ColNum of
+                     0:  Sg.Cells[ColNum, RowNum] := H^.Subject;
+                     1:  Sg.Cells[ColNum, RowNum] := H^. Title;
+                     2:  Sg.Cells[ColNum, RowNum] := H^. Number;
+                  end;
+               end;
+                    H := H^.Next;
+           end;
+    end;
+   end; 
+end;  //---КОНЕЦ СОРТИРОВКИ.
+
+ //14 ===== при нажатии на вид сортировки ======================
+  procedure TFrmMain.RGClick(Sender: TObject);
+begin
+  IsAdded := false; 	{никакая радио кнопка не выбрана}
+  if Rg.ItemIndex = 0 then
+    TFrmMain.Sort(0);  {сортируем по наименованию = name}
+  if Rg.ItemIndex = 1 then
+    TFrmMain.Sort(1);  {сортируем по автору}
+end;
+
+end. //----- end unit Unit1
+
+//======= unit u_f2 =====================================
+unit u_f2;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, Unit1;
+
+type
+  TFrmNewDisk = class(TForm)
+    lLblSubject: TLabel;
+    LblTitle: TLabel;
+    LblNumber: TLabel;
+    EdtTitle: TEdit;
+    EdtNumber: TEdit;
+    BtnAddNewDisk: TButton;
+    cbbSubject: TComboBox;
+     procedure BtnAddNewDiskClick(Sender: TObject);
+
+private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmNewDisk: TFrmNewDisk;
+
+implementation
+
+{$R *.dfm}
+ //-------------------------------------------------------------------------------
+//1 ====== процедура добавления диска в список ==================
+procedure DiskAdd(H: PCatalog);
+var
+     i, j: integer;
+     Temp: PCatalog;
+Begin 
+  with FrmNewDisk do
+  if H = nil then  // если списка нет
+     begin
+       New(Head);  // создаём список
+       with Head^ do
+        begin
+          case cbbSubject.ItemIndex of
+            0: Head^.Subject := 'Прикладное ПО';
+            1: Head^.Subject := 'Системное ПО';
+          end;
+          Title:= EdtTitle.Text;
+          Number := EdtNumber.Text;
+          Next := nil;
+          with FrmMain do
+          begin        {вывод на экран списка из 1 элемента}
+            Sg.RowCount := Sg.RowCount + 1;   {добавляем одну строку}
+            Sg.Cells[0, Sg.RowCount - 1] := Head^.Subject;
+            Sg.Cells[1, Sg.RowCount - 1] := Head^.Title;
+            Sg.Cells[2, Sg.RowCount - 1] := Head^.Number;
+            ShowMessage(' Диск добавлен ');
+          end;
+        end;
+     end      //-------
+  else
+  {если список есть}
+  begin
+   if cbbSubject.ItemIndex = 0 then {если список есть и добавляем Прикладн ПО}
+     begin
+        New(H);
+        H^.Subject:= ' Прикладное ПО ';
+        H^.Title:= EdtTitle.Text;
+        H^.Number := EdtNumber.Text;
+        H^.Next := Head;
+        Head := H;
+        Sg.RowCount := Sg.RowCount + 1;
+        for i := Sg.RowCount - 2 downto 1 do
+        Sg.Rows[i + 1] := Sg.Rows[i];
+        Sg.Cells[0, 1] := Head^.Subject;
+        Sg.Cells[1, 1] := Head^.Title;
+        Sg.Cells[2, 1] := Head^.Number;
+        ShowMessage(' Диск добавлен ');
+        Exit;
+     end;
+  end;
+
+  if cbbSubject.ItemIndex = 1 then {если список есть и добавляем Системн ПО}
+   begin
+     New(H);
+     H^.Subject:= ' Системное ПО ';
+     H^.Title:= EdtTitle.Text;
+     H^.Number := EdtNumber.Text;
+     H^.Next := Head;
+     Head := H;
+     Sg.RowCount := Sg.RowCount + 1;
+     for i := Sg.RowCount - 2 downto 1 do
+     Sg.Rows[i + 1] := Sg.Rows[i];
+     Sg.Cells[0, 1] := Head^.Subject;
+     Sg.Cells[1, 1] := Head^.Title;
+     Sg.Cells[2, 1] := Head^.Number;
+     ShowMessage(' Диск добавлен ');
+     Exit;
+   end;
+end; //---DiskAdd
+
+//2 ==== добавление новой строки в таблицу главной формы при нажатии на кнопку "Добавить" на второй форме ========
+procedure TFrmNewDisk.BtnAddNewDiskClick(Sender: TObject);
+begin
+ DiskAdd(Head);
+    //close;
+ end;
+
+end.
